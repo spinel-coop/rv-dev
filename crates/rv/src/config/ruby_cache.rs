@@ -18,16 +18,16 @@ impl Config {
             .entry(rv_cache::CacheBucket::Ruby, "interpreters", &cache_key);
 
         // Try to read and deserialize cached data
-        match fs_err::read_to_string(cache_entry.path()) {
+        match cacache::read_sync(self.cache.root(), cache_entry.path()) {
             Ok(content) => {
-                match serde_json::from_str::<Ruby>(&content) {
+                match serde_json::from_slice::<Ruby>(&content) {
                     Ok(cached_ruby) => {
                         // Verify cached Ruby installation still exists and is valid
                         if cached_ruby.is_valid() {
                             Ok(cached_ruby)
                         } else {
                             // Ruby is no longer valid, remove cache entry
-                            let _ = fs_err::remove_file(cache_entry.path());
+                            let _ = cacache::remove_sync(self.cache.root(), cache_entry.path());
                             Err(Error::RubyCacheMiss {
                                 ruby_path: ruby_path.to_path_buf(),
                             }
@@ -36,7 +36,7 @@ impl Config {
                     }
                     Err(_) => {
                         // Invalid cache file, remove it
-                        let _ = fs_err::remove_file(cache_entry.path());
+                        let _ = cacache::remove_sync(self.cache.root(), cache_entry.path());
                         Err(Error::RubyCacheMiss {
                             ruby_path: ruby_path.to_path_buf(),
                         }
@@ -58,11 +58,6 @@ impl Config {
         let cache_entry = self
             .cache
             .entry(rv_cache::CacheBucket::Ruby, "interpreters", &cache_key);
-
-        // Ensure cache directory exists
-        if let Some(parent) = cache_entry.path().parent() {
-            fs_err::create_dir_all(parent).into_diagnostic()?;
-        }
 
         // Serialize and write Ruby information to cache
         let json_data = serde_json::to_string(ruby).into_diagnostic()?;

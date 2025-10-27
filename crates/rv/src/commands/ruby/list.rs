@@ -5,7 +5,6 @@ use std::time::{Duration, SystemTime};
 use anstream::println;
 use camino::Utf8PathBuf;
 use current_platform::CURRENT_PLATFORM;
-use fs_err as fs;
 use once_cell::sync::Lazy;
 use owo_colors::OwoColorize;
 use regex::Regex;
@@ -238,10 +237,11 @@ pub(crate) async fn fetch_available_rubies(cache: &rv_cache::Cache) -> Result<Re
                 release: release.clone(),
             };
 
-            if let Some(parent) = cache_entry.path().parent() {
-                fs::create_dir_all(parent)?;
-            }
-            fs::write(cache_entry.path(), serde_json::to_string(&new_cache_entry)?)?;
+            cacache::write_sync(
+                cache.root(),
+                cache_entry.path(),
+                serde_json::to_string(&new_cache_entry)?,
+            )?;
 
             Ok(release)
         }
@@ -291,8 +291,8 @@ pub async fn list(config: &Config, format: OutputFormat, installed_only: bool) -
                 "releases",
                 "available_rubies.json",
             );
-            if let Ok(content) = fs::read_to_string(cache_entry.path())
-                && let Ok(cached_data) = serde_json::from_str::<CachedRelease>(&content)
+            if let Ok(content) = cacache::read_sync(config.cache.root(), cache_entry.path())
+                && let Ok(cached_data) = serde_json::from_slice::<CachedRelease>(&content)
             {
                 warn!("Displaying stale list of available rubies from cache.");
                 cached_data.release
