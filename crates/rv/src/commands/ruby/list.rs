@@ -161,7 +161,7 @@ pub(crate) async fn fetch_available_rubies(cache: &rv_cache::Cache) -> Result<Re
 
     // 1. Try to read from the disk cache.
     let cached_data: Option<CachedRelease> =
-        if let Ok(content) = cacache::read_sync(cache.root(), cache_entry.path()) {
+        if let Ok(content) = cacache::read_sync(cache_entry.dir(), cache_entry.path()) {
             serde_json::from_slice(&content).ok()
         } else {
             None
@@ -208,7 +208,7 @@ pub(crate) async fn fetch_available_rubies(cache: &rv_cache::Cache) -> Result<Re
 
             stale_cache.expires_at = SystemTime::now() + max_age.max(MINIMUM_CACHE_TTL);
             cacache::write_sync(
-                cache.root(),
+                cache_entry.dir(),
                 cache_entry.path(),
                 serde_json::to_string(&stale_cache)?,
             )?;
@@ -238,7 +238,7 @@ pub(crate) async fn fetch_available_rubies(cache: &rv_cache::Cache) -> Result<Re
             };
 
             cacache::write_sync(
-                cache.root(),
+                cache_entry.dir(),
                 cache_entry.path(),
                 serde_json::to_string(&new_cache_entry)?,
             )?;
@@ -291,7 +291,7 @@ pub async fn list(config: &Config, format: OutputFormat, installed_only: bool) -
                 "releases",
                 "available_rubies.json",
             );
-            if let Ok(content) = cacache::read_sync(config.cache.root(), cache_entry.path())
+            if let Ok(content) = cacache::read_sync(cache_entry.dir(), cache_entry.path())
                 && let Ok(cached_data) = serde_json::from_slice::<CachedRelease>(&content)
             {
                 warn!("Displaying stale list of available rubies from cache.");
