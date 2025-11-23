@@ -25,6 +25,7 @@ use crate::commands::ruby::pin::pin as ruby_pin;
 use crate::commands::ruby::run::run as ruby_run;
 use crate::commands::ruby::uninstall::uninstall as ruby_uninstall;
 use crate::commands::ruby::{RubyArgs, RubyCommand};
+use crate::commands::selfupdate::selfupdate;
 use crate::commands::shell::completions::shell_completions;
 use crate::commands::shell::env::env as shell_env;
 use crate::commands::shell::init::init as shell_init;
@@ -128,6 +129,8 @@ enum Commands {
     Cache(CacheCommandArgs),
     #[command(about = "Configure your shell to use rv")]
     Shell(ShellArgs),
+    #[command(about = "Update rv itself, if an update is available")]
+    Selfupdate,
 }
 
 #[derive(Debug, Copy, Clone, clap::ValueEnum)]
@@ -295,6 +298,7 @@ async fn run() -> Result<()> {
                 CacheCommand::Clean => cache_clean(&config)?,
                 CacheCommand::Prune => cache_prune(&config)?,
             },
+            Commands::Selfupdate => selfupdate().await.unwrap(), // FIXME: don't unwrap
             Commands::Shell(shell) => match shell.command {
                 ShellCommand::Init { shell } => shell_init(&config, shell)?,
                 ShellCommand::Completions { shell } => {
